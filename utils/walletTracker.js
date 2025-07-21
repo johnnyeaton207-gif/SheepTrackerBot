@@ -25,12 +25,14 @@ async function getTokenPrice(mint) {
 async function checkWallet(bot, groupId) {
   try {
     const url = `https://public-api.birdeye.so/defi/wallet/token-list?wallet=${WALLET}`;
-    const res = await fetch(url, {
-      headers: {
-        'x-chain': 'solana',
-        'x-api-key': API_KEY
-      }
-    });
+   const res = await fetch(url, {
+  headers: {
+    'x-chain': 'solana',
+    'x-api-key': API_KEY,
+    'accept': 'application/json'
+  }
+});
+
 
     const data = await res.json();
 
