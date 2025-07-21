@@ -1,55 +1,19 @@
-require('dotenv').config();
-const { Telegraf } = require('telegraf');
-const config = require('./config');
-const sniper = require('./modules/sniper');
-const simauto = require('./modules/simauto');
-const practice = require('./modules/practice');
-const walletTracker = require('./modules/walletTracker');
-const zombieScanner = require('./modules/zombieScanner');
 
-const bot = new Telegraf(process.env.BOT_TOKEN);
+ require('dotenv').config();
+const TelegramBot = require('node-telegram-bot-api');
 
-// === Group ID Logger ===
-bot.on('message', (ctx) => {
-  const chatId = ctx.chat.id;
-  console.log(`Incoming message from chat ID: ${chatId}`);
-});
+// Create the bot using your token
+const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
-// === Command: Mode Switching ===
-bot.command('mode', (ctx) => {
-  const args = ctx.message.text.split(' ');
-  const mode = args[1]?.toLowerCase();
-  switch (mode) {
-    case 'live':
-      config.mode = 'live';
-      ctx.reply('🔴 Sniper mode: LIVE');
-      break;
-    case 'simauto':
-      config.mode = 'simauto';
-      ctx.reply('🧪 Sniper mode: SimAuto (test only)');
-      break;
-    case 'practice':
-      config.mode = 'practice';
-      ctx.reply('🎯 Sniper mode: Manual Practice');
-      break;
-    default:
-      ctx.reply('Usage: /mode [live | simauto | practice]');
+// Log when bot starts
+console.log('SheepTrackerBot is running...');
+
+// Log the group or chat ID when any message is received
+bot.on('message', (msg) => {
+  console.log('Chat ID:', msg.chat.id);
+
+  // Optional: have bot reply to confirm it's active
+  if (msg.text && msg.text.toLowerCase() === 'ping') {
+    bot.sendMessage(msg.chat.id, 'Pong 🐑');
   }
 });
-
-// === Main Polling Logic ===
-setInterval(() => {
-  if (config.mode === 'live') {
-    sniper.run(bot);
-  } else if (config.mode === 'simauto') {
-    simauto.run(bot);
-  } else if (config.mode === 'practice') {
-    // Manual only
-  }
-  walletTracker.run(bot);
-  zombieScanner.run(bot);
-}, config.pollInterval || 15000);
-
-// === Bot Launch ===
-bot.launch();
-console.log('🐺 SheepTrackerBot is running...');
