@@ -1,19 +1,25 @@
-
- require('dotenv').config();
+require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 
-// Create the bot using your token
+// Create a new bot instance using your token from the .env file
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 
-// Log when bot starts
-console.log('SheepTrackerBot is running...');
+// Log that the bot is running
+console.log('✅ SheepTrackerBot is running...');
 
-// Log the group or chat ID when any message is received
+// Listen for all messages
 bot.on('message', (msg) => {
-  console.log('Chat ID:', msg.chat.id);
+  try {
+    const chatId = msg.chat.id;
+    console.log('📟 Chat ID:', chatId);
 
-  // Optional: have bot reply to confirm it's active
-  if (msg.text && msg.text.toLowerCase() === 'ping') {
-    bot.sendMessage(msg.chat.id, 'Pong 🐑');
+    // Optional: Reply if someone types "ping"
+    if (msg.text && msg.text.toLowerCase().includes('ping')) {
+      bot.sendMessage(chatId, 'Pong 🐑');
+    }
+
+  } catch (error) {
+    console.error('❌ Error handling message:', error.message);
   }
 });
+
