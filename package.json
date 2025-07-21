@@ -1,13 +1,14 @@
 {
   "name": "sheep-tracker-bot",
   "version": "1.0.0",
-  "description": "Telegram bot that tracks wallets and snipes tokens",
+  "description": "Telegram sniper + wallet tracker bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "dotenv": "^16.3.1",
-    "node-telegram-bot-api": "^0.61.0"
+    "node-telegram-bot-api": "^0.61.0",
+    "node-fetch": "^3.3.2"
   }
 }
