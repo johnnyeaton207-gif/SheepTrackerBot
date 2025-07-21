@@ -1,0 +1,15 @@
+{
+  "name": "sheeptrackerbot",
+  "version": "1.0.0",
+  "description": "Telegram bot for Solana sniping, simulation, and wallet tracking",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2",
+    "telegraf": "^4.12.3"
+  },
+  "type": "module"
+}
