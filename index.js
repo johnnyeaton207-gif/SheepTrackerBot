@@ -1,3 +1,4 @@
+const { addBuy, getBuys, clearBuys } = require('./utils/practiceStore');
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 
@@ -21,5 +22,18 @@ bot.on('message', (msg) => {
   } catch (error) {
     console.error('❌ Error handling message:', error.message);
   }
+});
+bot.onText(/\/practice buy (.+) (.+)/, (msg, match) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const token = match[1];
+  const amount = parseFloat(match[2]);
+
+  if (!token || isNaN(amount)) {
+    return bot.sendMessage(chatId, '❌ Invalid format. Use:\n/practice buy <token_address> <amount>');
+  }
+
+  addBuy(userId, token, amount);
+  bot.sendMessage(chatId, `✅ Practice buy recorded:\nToken: ${token}\nAmount: ${amount} SOL`);
 });
 
