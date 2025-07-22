@@ -5,12 +5,10 @@ const checkPracticeMode = require('./utils/practiceStore');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 const groupId = process.env.GROUP_ID;
-const wallet = process.env.WALLET_ADDRESS;
-const apiKey = process.env.BIRDEYE_API_KEY;
 
 console.log("✅ SheepTrackerBot is running...");
-console.log("Wallet:", wallet);
-console.log("API Key:", apiKey);
+console.log("Wallet:", process.env.WALLET_ADDRESS);
+console.log("API Key:", process.env.BIRDEYE_API_KEY);
 
 // 🔁 Ping Test
 bot.onText(/\/ping/, (msg) => {
@@ -21,6 +19,7 @@ bot.onText(/\/ping/, (msg) => {
 bot.onText(/\/buy (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
+
   const result = await checkPracticeMode(userId, 'buy', amount);
   bot.sendMessage(msg.chat.id, result);
 });
@@ -29,6 +28,7 @@ bot.onText(/\/buy (.+)/, async (msg, match) => {
 bot.onText(/\/sell (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
+
   const result = await checkPracticeMode(userId, 'sell', amount);
   bot.sendMessage(msg.chat.id, result);
 });
@@ -49,5 +49,5 @@ bot.onText(/\/balance/, async (msg) => {
 
 // ⏱️ Run Wallet Tracker every 20 seconds
 setInterval(() => {
-  checkWallet(bot, groupId, wallet, apiKey);
+  checkWallet(bot, groupId, process.env.WALLET_ADDRESS, process.env.BIRDEYE_API_KEY);
 }, 20000);
