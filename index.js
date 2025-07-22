@@ -1,53 +1,28 @@
-require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const checkWallet = require('./utils/walletTracker');
-const checkPracticeMode = require('./utils/practiceStore');
+const checkWallet = require('./checkWallet');
 
-const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-const groupId = process.env.GROUP_ID;
-const wallet = process.env.WALLET_ADDRESS;
-const apiKey = process.env.BIRDEYE_API_KEY;
+// Replace with your actual bot token and group ID
+const BOT_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN';
+const GROUP_ID = 'YOUR_GROUP_ID'; // example: -1001234567890
+const WALLET_ADDRESS = 'X7sRZF4yodAZCDLnAb3aKA94BZwXX1wxuWEGnGyU4Gz';
 
-console.log("✅ SheepTrackerBot is running...");
-console.log("Wallet:", wallet);
-console.log("API Key:", apiKey);
+const bot = new TelegramBot(BOT_TOKEN, { polling: true });
 
-// 🔁 Ping Test
-bot.onText(/\/ping/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'pong');
+// Respond to /start or /check
+bot.onText(/\/start|\/check/, async (msg) => {
+  const chatId = msg.chat.id;
+
+  if (String(chatId) !== String(GROUP_ID)) {
+    return bot.sendMessage(chatId, "❌ Unauthorized group");
+  }
+
+  bot.sendMessage(chatId, '🔍 Checking wallet...');
+  await checkWallet(bot, chatId, WALLET_ADDRESS);
 });
 
-// 🧪 Practice Mode Buy
-bot.onText(/\/buy (.+)/, async (msg, match) => {
-  const userId = msg.from.id;
-  const amount = match[1];
-  const result = await checkPracticeMode(userId, 'buy', amount);
-  bot.sendMessage(msg.chat.id, result);
+// Optional: Ping confirmation
+bot.on('message', (msg) => {
+  if (msg.text.toLowerCase() === 'ping') {
+    bot.sendMessage(msg.chat.id, 'pong 🐺');
+  }
 });
-
-// 🧪 Practice Mode Sell
-bot.onText(/\/sell (.+)/, async (msg, match) => {
-  const userId = msg.from.id;
-  const amount = match[1];
-  const result = await checkPracticeMode(userId, 'sell', amount);
-  bot.sendMessage(msg.chat.id, result);
-});
-
-// 🧪 Start Practice
-bot.onText(/\/start/, async (msg) => {
-  const userId = msg.from.id;
-  const result = await checkPracticeMode(userId, 'start');
-  bot.sendMessage(msg.chat.id, result);
-});
-
-// 🧪 Check Balance
-bot.onText(/\/balance/, async (msg) => {
-  const userId = msg.from.id;
-  const result = await checkPracticeMode(userId, 'balance');
-  bot.sendMessage(msg.chat.id, result);
-});
-
-// ⏱️ Run Wallet Tracker every 20 seconds
-setInterval(() => {
-  checkWallet(bot, groupId, wallet, apiKey);
-}, 20000);
