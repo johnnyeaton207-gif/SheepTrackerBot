@@ -1,13 +1,12 @@
 const fetch = require('node-fetch');
 
 async function fetchWalletTokens(wallet, apiKey) {
-  const url = `https://public-api.birdeye.so/defi/tokenlist?wallet=${wallet}`; // ✅ Updated endpoint
+  const url = `https://public-api.birdeye.so/defi/portfolio?wallet=${wallet}&chain=solana`;
 
   try {
     const response = await fetch(url, {
       headers: {
         'accept': 'application/json',
-        'x-chain': 'solana',
         'X-API-KEY': apiKey
       }
     });
@@ -29,7 +28,7 @@ async function fetchWalletTokens(wallet, apiKey) {
   }
 }
 
-module.exports = async function checkWallet(bot, groupId, wallet = process.env.WALLET_ADDRESS, apiKey = process.env.BIRDEYE_API_KEY) {
+module.exports = async function checkWallet(bot, groupId, wallet, apiKey) {
   const tokens = await fetchWalletTokens(wallet, apiKey);
   if (!tokens.length) return;
 
