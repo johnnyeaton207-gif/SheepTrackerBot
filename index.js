@@ -1,9 +1,6 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const checkWallet = require('./utils/walletTracker')({
-  wallet: process.env.WALLET_ADDRESS,
-  apiKey: process.env.BIRDEYE_API_KEY,
-});
+const { checkWallet } = require('./utils/walletTracker');
 const checkPracticeMode = require('./utils/practiceStore');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
@@ -22,7 +19,6 @@ bot.onText(/\/ping/, (msg) => {
 bot.onText(/\/buy (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
-
   const result = await checkPracticeMode(userId, 'buy', amount);
   bot.sendMessage(msg.chat.id, result);
 });
@@ -31,7 +27,6 @@ bot.onText(/\/buy (.+)/, async (msg, match) => {
 bot.onText(/\/sell (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
-
   const result = await checkPracticeMode(userId, 'sell', amount);
   bot.sendMessage(msg.chat.id, result);
 });
