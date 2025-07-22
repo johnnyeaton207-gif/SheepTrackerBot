@@ -1,13 +1,15 @@
 const fetch = require('node-fetch');
 
+// Fetch the list of tokens in the wallet using Birdeye API
 async function fetchWalletTokens(wallet, apiKey) {
-  const url = `https://public-api.birdeye.so/defi/portfolio?wallet=${wallet}&chain=solana`;
+  const url = `https://public-api.birdeye.so/wallet/token_list?wallet=${wallet}`;
 
   try {
     const response = await fetch(url, {
       headers: {
         'accept': 'application/json',
-        'X-API-KEY': apiKey
+        'x-chain': 'solana',
+        'X-API-KEY': apiKey  // Your working API key
       }
     });
 
@@ -28,7 +30,10 @@ async function fetchWalletTokens(wallet, apiKey) {
   }
 }
 
-module.exports = async function checkWallet(bot, groupId, wallet, apiKey) {
+// Exported function for use in your bot
+module.exports = async function checkWallet(bot, groupId, wallet) {
+  const apiKey = '1b3def4fcb234de48b834dc9aa819092'; // ✅ Use your real Birdeye API key here
+
   const tokens = await fetchWalletTokens(wallet, apiKey);
   if (!tokens.length) return;
 
