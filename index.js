@@ -1,14 +1,16 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const { checkWallet } = require('./utils/walletTracker');
+const checkWallet = require('./utils/walletTracker');
 const checkPracticeMode = require('./utils/practiceStore');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 const groupId = process.env.GROUP_ID;
+const wallet = process.env.WALLET_ADDRESS;
+const apiKey = process.env.BIRDEYE_API_KEY;
 
 console.log("✅ SheepTrackerBot is running...");
-console.log("Wallet:", process.env.WALLET_ADDRESS);
-console.log("API Key:", process.env.BIRDEYE_API_KEY);
+console.log("Wallet:", wallet);
+console.log("API Key:", apiKey);
 
 // 🔁 Ping Test
 bot.onText(/\/ping/, (msg) => {
@@ -47,5 +49,5 @@ bot.onText(/\/balance/, async (msg) => {
 
 // ⏱️ Run Wallet Tracker every 20 seconds
 setInterval(() => {
-  checkWallet(bot, groupId);
+  checkWallet(bot, groupId, wallet, apiKey);
 }, 20000);
