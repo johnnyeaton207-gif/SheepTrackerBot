@@ -10,7 +10,7 @@ module.exports = {
   enableZombieScanner: true,
 
   trackedWallets: [
-    'YourOtherWalletHereIfYouWantToMirror',
+    'process.env.WALLET_ADDRESS,
   ],
 
   simLogResults: true,
