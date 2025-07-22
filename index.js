@@ -1,33 +1,56 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const checkWallet = require('./utils/walletTracker');
-const practiceStore = require('./utils/practiceStore');
+const checkWallet = require('./utils/walletTracker')({
+  wallet: process.env.WALLET_ADDRESS,
+  apiKey: process.env.BIRDEYE_API_KEY,
+});
+const checkPracticeMode = require('./utils/practiceStore');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-console.log('✅ SheepTrackerBot is running...');
+const groupId = process.env.GROUP_ID;
 
-// 🧠 Practice Mode Commands
-bot.onText(/\/practice (.+)/, (msg, match) => {
-  const chatId = msg.chat.id;
-  const input = match[1];
-  let response = practiceStore.handleInput(input);
-  bot.sendMessage(chatId, response);
+console.log("✅ SheepTrackerBot is running...");
+console.log("Wallet:", process.env.WALLET_ADDRESS);
+console.log("API Key:", process.env.BIRDEYE_API_KEY);
+
+// 🔁 Ping Test
+bot.onText(/\/ping/, (msg) => {
+  bot.sendMessage(msg.chat.id, 'pong');
 });
 
-bot.onText(/\/practice$/, (msg) => {
-  const chatId = msg.chat.id;
-  bot.sendMessage(chatId, practiceStore.getState());
+// 🧪 Practice Mode Buy
+bot.onText(/\/buy (.+)/, async (msg, match) => {
+  const userId = msg.from.id;
+  const amount = match[1];
+
+  const result = await checkPracticeMode(userId, 'buy', amount);
+  bot.sendMessage(msg.chat.id, result);
 });
 
-bot.onText(/\/practice clear/, (msg) => {
-  const chatId = msg.chat.id;
-  practiceStore.clear();
-  bot.sendMessage(chatId, '🧹 Practice store cleared.');
+// 🧪 Practice Mode Sell
+bot.onText(/\/sell (.+)/, async (msg, match) => {
+  const userId = msg.from.id;
+  const amount = match[1];
+
+  const result = await checkPracticeMode(userId, 'sell', amount);
+  bot.sendMessage(msg.chat.id, result);
 });
 
-// 👀 Wallet Tracker Loop
+// 🧪 Start Practice
+bot.onText(/\/start/, async (msg) => {
+  const userId = msg.from.id;
+  const result = await checkPracticeMode(userId, 'start');
+  bot.sendMessage(msg.chat.id, result);
+});
+
+// 🧪 Check Balance
+bot.onText(/\/balance/, async (msg) => {
+  const userId = msg.from.id;
+  const result = await checkPracticeMode(userId, 'balance');
+  bot.sendMessage(msg.chat.id, result);
+});
+
+// ⏱️ Run Wallet Tracker every 20 seconds
 setInterval(() => {
-  if (process.env.GROUP_ID) {
-    checkWallet(bot, process.env.GROUP_ID);
-  }
-}, 15000);
+  checkWallet(bot, groupId);
+}, 20000);
