@@ -1,18 +1,17 @@
-import fetch from 'node-fetch';
-import dotenv from 'dotenv';
-dotenv.config();
+const fetch = require('node-fetch');
+require('dotenv').config();
 
 const BIRDEYE_API_KEY = process.env.BIRDEYE_API_KEY;
 const WALLET_ADDRESS = process.env.WALLET_ADDRESS;
 
-export async function checkWallet() {
+async function checkWallet() {
   try {
     const response = await fetch(`https://public-api.birdeye.so/defi/token_balance?wallet=${WALLET_ADDRESS}`, {
       method: 'GET',
       headers: {
         'accept': 'application/json',
         'x-chain': 'solana',
-        'X-API-KEY': BIRDEYE_API_KEY, // ✅ THIS IS THE FIX
+        'X-API-KEY': BIRDEYE_API_KEY, // Correct header key
       },
     });
 
@@ -29,3 +28,6 @@ export async function checkWallet() {
     console.error('❌ Wallet check failed:', error.message);
   }
 }
+
+module.exports = { checkWallet };
+
