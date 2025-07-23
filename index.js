@@ -1,6 +1,6 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
-const checkWallet = require('./utils/walletTracker'); // ← Using walletTracker.js
+const checkWallet = require('./utils/checkWallet'); // ← Using walletTracker.js
 const checkPracticeMode = require('./utils/practiceStore');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
