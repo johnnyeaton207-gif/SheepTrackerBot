@@ -8,7 +8,7 @@ async function fetchWalletTokens(wallet, apiKey) {
       headers: {
         'accept': 'application/json',
         'x-chain': 'solana',
-        'X-API-KEY': apiKey
+        'x-api-key': apiKey
       }
     });
 
@@ -29,15 +29,15 @@ async function fetchWalletTokens(wallet, apiKey) {
   }
 }
 
-module.exports = async function checkWallet(wallet, apiKey) {
+module.exports = async function checkWallet(bot, groupId, wallet, apiKey) {
   const tokens = await fetchWalletTokens(wallet, apiKey);
   if (!tokens.length) return;
 
   const sorted = tokens.sort((a, b) => b.ui_amount - a.ui_amount);
   const top = sorted.slice(0, 5);
 
-  return `🐺 Wallet Tracker:\n` +
-    top.map(token =>
-      `• ${token.symbol || token.token_address.slice(0, 6)}: ${token.ui_amount.toFixed(2)}`
-    ).join('\n');
+  const message = `📊 Top Tokens in Wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)}:\n` +
+    top.map(token => `• ${token.symbol || token.token_address.slice(0, 6)}: ${token.ui_amount.toFixed(2)}`).join('\n');
+
+  bot.sendMessage(groupId, message);
 };
