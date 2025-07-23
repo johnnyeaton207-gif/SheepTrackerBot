@@ -45,7 +45,7 @@ bot.onText(/\/balance/, async (msg) => {
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🔄 Wallet Tracker — every 20 seconds
+// 🔄 Check Wallet — every 20 seconds
 setInterval(() => {
   checkWallet(bot, groupId, process.env.WALLET_ADDRESS, process.env.BIRDEYE_API_KEY);
 }, 20000);
