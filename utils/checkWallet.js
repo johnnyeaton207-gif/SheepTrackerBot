@@ -1,9 +1,7 @@
 const fetch = require('node-fetch');
 
-async function fetchWalletTokens() {
-  const wallet = process.env.WALLET_ADDRESS;
-  const apiKey = process.env.BIRDEYE_API_KEY;
-  const url = `https://public-api.birdeye.so/public/wallet/token_list?wallet=${wallet}`;
+async function fetchWalletTokens(wallet, apiKey) {
+  const url = `https://public-api.birdeye.so/wallet/token_list?wallet=${wallet}`;
 
   try {
     const response = await fetch(url, {
@@ -20,7 +18,6 @@ async function fetchWalletTokens() {
     }
 
     const data = await response.json();
-
     if (!data || !data.data || !Array.isArray(data.data.tokens)) {
       throw new Error('❌ Wallet check failed — Unexpected response format');
     }
@@ -34,7 +31,9 @@ async function fetchWalletTokens() {
 
 module.exports = async function checkWallet(bot, groupId) {
   const wallet = process.env.WALLET_ADDRESS;
-  const tokens = await fetchWalletTokens();
+  const apiKey = process.env.BIRDEYE_API_KEY;
+
+  const tokens = await fetchWalletTokens(wallet, apiKey);
   if (!tokens.length) return;
 
   const sorted = tokens.sort((a, b) => b.ui_amount - a.ui_amount);
