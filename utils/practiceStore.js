@@ -1,21 +1,38 @@
-// utils/practiceStore.js
-const practiceBuys = {};
+const userData = {};
 
-function addBuy(userId, token, amount, timestamp = Date.now()) {
-  if (!practiceBuys[userId]) practiceBuys[userId] = [];
-  practiceBuys[userId].push({ token, amount, timestamp });
+function checkPracticeMode(userId, action, amount) {
+  if (!userData[userId]) {
+    userData[userId] = { balance: 1000 };
+  }
+
+  if (action === 'start') {
+    userData[userId].balance = 1000;
+    return `🧪 Practice mode started! You have $1000 in virtual funds.`;
+  }
+
+  if (action === 'balance') {
+    return `💰 Your current virtual balance is $${userData[userId].balance.toFixed(2)}.`;
+  }
+
+  amount = parseFloat(amount);
+  if (isNaN(amount) || amount <= 0) {
+    return `❌ Invalid amount.`;
+  }
+
+  if (action === 'buy') {
+    if (userData[userId].balance < amount) {
+      return `❌ Not enough funds. You only have $${userData[userId].balance.toFixed(2)}.`;
+    }
+    userData[userId].balance -= amount;
+    return `✅ You bought for $${amount.toFixed(2)}. Remaining: $${userData[userId].balance.toFixed(2)}.`;
+  }
+
+  if (action === 'sell') {
+    userData[userId].balance += amount;
+    return `✅ You sold for $${amount.toFixed(2)}. New balance: $${userData[userId].balance.toFixed(2)}.`;
+  }
+
+  return `❌ Unknown action.`;
 }
 
-function getBuys(userId) {
-  return practiceBuys[userId] || [];
-}
-
-function clearBuys(userId) {
-  practiceBuys[userId] = [];
-}
-
-module.exports = {
-  addBuy,
-  getBuys,
-  clearBuys
-};
+module.exports = checkPracticeMode;
