@@ -1,38 +1,44 @@
-const userData = {};
+// utils/practiceStore.js
 
-function checkPracticeMode(userId, action, amount) {
-  if (!userData[userId]) {
-    userData[userId] = { balance: 1000 };
-  }
+const balances = {};
+
+// Helper to ensure user/token balance exists
+function initBalance(userId, symbol) {
+  if (!balances[userId]) balances[userId] = {};
+  if (!balances[userId][symbol]) balances[userId][symbol] = 0;
+}
+
+// Main function
+module.exports = async function practiceStore(userId, action, symbol, amount = 0) {
+  symbol = symbol.toUpperCase();
 
   if (action === 'start') {
-    userData[userId].balance = 1000;
-    return `🧪 Practice mode started! You have $1000 in virtual funds.`;
+    balances[userId] = {}; // Reset user's balances
+    return '🧪 Practice mode started. Use /buy SYMBOL AMOUNT or /sell SYMBOL AMOUNT';
   }
 
-  if (action === 'balance') {
-    return `💰 Your current virtual balance is $${userData[userId].balance.toFixed(2)}.`;
-  }
+  if (!symbol || !userId) return '⚠️ Missing user or symbol.';
 
-  amount = parseFloat(amount);
-  if (isNaN(amount) || amount <= 0) {
-    return `❌ Invalid amount.`;
-  }
+  initBalance(userId, symbol);
 
   if (action === 'buy') {
-    if (userData[userId].balance < amount) {
-      return `❌ Not enough funds. You only have $${userData[userId].balance.toFixed(2)}.`;
-    }
-    userData[userId].balance -= amount;
-    return `✅ You bought for $${amount.toFixed(2)}. Remaining: $${userData[userId].balance.toFixed(2)}.`;
+    balances[userId][symbol] += parseFloat(amount);
+    return `✅ Bought ${amount} ${symbol}. New balance: ${balances[userId][symbol].toFixed(4)} ${symbol}`;
   }
 
   if (action === 'sell') {
-    userData[userId].balance += amount;
-    return `✅ You sold for $${amount.toFixed(2)}. New balance: $${userData[userId].balance.toFixed(2)}.`;
+    if (balances[userId][symbol] < parseFloat(amount)) {
+      return `❌ Not enough ${symbol} to sell. Current balance: ${balances[userId][symbol].toFixed(4)} ${symbol}`;
+    }
+    balances[userId][symbol] -= parseFloat(amount);
+    return `✅ Sold ${amount} ${symbol}. New balance: ${balances[userId][symbol].toFixed(4)} ${symbol}`;
   }
 
-  return `❌ Unknown action.`;
-}
+  if (action === 'balance') {
+    const tokens = Object.entries(balances[userId] || {});
+    if (tokens.length === 0) return '📭 No balances. Use /buy to get started.';
+    return '💼 Your balances:\n' + tokens.map(([sym, amt]) => `• ${sym}: ${amt.toFixed(4)}`).join('\n');
+  }
 
-module.exports = checkPracticeMode;
+  return '⚠️ Unknown action.';
+};
