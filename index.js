@@ -19,7 +19,6 @@ bot.onText(/\/ping/, (msg) => {
 bot.onText(/\/buy (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
-
   const result = await checkPracticeMode(userId, 'buy', amount);
   bot.sendMessage(msg.chat.id, result);
 });
@@ -28,7 +27,6 @@ bot.onText(/\/buy (.+)/, async (msg, match) => {
 bot.onText(/\/sell (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
-
   const result = await checkPracticeMode(userId, 'sell', amount);
   bot.sendMessage(msg.chat.id, result);
 });
@@ -49,5 +47,5 @@ bot.onText(/\/balance/, async (msg) => {
 
 // ⏱️ Run Wallet Tracker every 20 seconds
 setInterval(() => {
-  checkWallet(bot, groupId);
+  checkWallet(bot, groupId, process.env.WALLET_ADDRESS, process.env.BIRDEYE_API_KEY);
 }, 20000);
