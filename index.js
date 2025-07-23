@@ -1,53 +1,73 @@
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const checkWallet = require('./utils/walletTracker');
-const practiceStore = require('./utils/practiceStore');
+const {
+  startPractice,
+  mockBuy,
+  mockSell,
+  checkBalance,
+  resetPractice
+} = require('./utils/practiceStore');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
 const groupId = process.env.GROUP_ID;
+const wallet = process.env.WALLET_ADDRESS;
+const apiKey = process.env.BIRDEYE_API_KEY;
 
 console.log("✅ SheepTrackerBot is running...");
-console.log("Wallet:", process.env.WALLET_ADDRESS);
-console.log("API Key:", process.env.BIRDEYE_API_KEY);
+console.log("Wallet:", wallet);
+console.log("API Key:", apiKey);
 
-// 🔁 Ping
+// 🐺 Ping test
 bot.onText(/\/ping/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'pong 🐑');
+  bot.sendMessage(msg.chat.id, '🐺 Pong! Tracker online.');
 });
 
-// 🧪 Start Practice Mode
+// 🧠 Start Practice Mode
 bot.onText(/\/start/, async (msg) => {
   const userId = msg.from.id;
-  const result = await practiceStore(userId, 'start');
+  const result = await startPractice(userId);
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🧪 Balance Check
+// 💸 Mock Buy
+bot.onText(/\/buy (.+)/, async (msg, match) => {
+  const userId = msg.from.id;
+  const amount = match[1];
+  const result = await mockBuy(userId, parseFloat(amount));
+  bot.sendMessage(msg.chat.id, result);
+});
+
+// 💰 Mock Sell
+bot.onText(/\/sell (.+)/, async (msg, match) => {
+  const userId = msg.from.id;
+  const amount = match[1];
+  const result = await mockSell(userId, parseFloat(amount));
+  bot.sendMessage(msg.chat.id, result);
+});
+
+// 📊 Check Balance
 bot.onText(/\/balance/, async (msg) => {
   const userId = msg.from.id;
-  const result = await practiceStore(userId, 'balance');
+  const result = await checkBalance(userId);
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🧪 Buy — format: /buy SYMBOL AMOUNT
-bot.onText(/\/buy (\w+)\s+([\d.]+)/, async (msg, match) => {
+// 🔁 Reset Practice Account
+bot.onText(/\/reset/, async (msg) => {
   const userId = msg.from.id;
-  const symbol = match[1];
-  const amount = match[2];
-  const result = await practiceStore(userId, 'buy', symbol, amount);
+  const result = await resetPractice(userId);
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🧪 Sell — format: /sell SYMBOL AMOUNT
-bot.onText(/\/sell (\w+)\s+([\d.]+)/, async (msg, match) => {
-  const userId = msg.from.id;
-  const symbol = match[1];
-  const amount = match[2];
-  const result = await practiceStore(userId, 'sell', symbol, amount);
+// 👀 Check Wallet Tokens
+bot.onText(/\/wallet/, async (msg) => {
+  const result = await checkWallet(wallet, apiKey);
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🔎 Wallet Tracking (every 20s)
-setInterval(() => {
-  checkWallet(bot, groupId, process.env.WALLET_ADDRESS, process.env.BIRDEYE_API_KEY);
+// 🔄 Auto Wallet Tracker every 20s
+setInterval(async () => {
+  const result = await checkWallet(wallet, apiKey);
+  if (result) bot.sendMessage(groupId, result);
 }, 20000);
