@@ -1,7 +1,8 @@
 const fetch = require('node-fetch');
 
 async function fetchWalletTokens(wallet, apiKey) {
-  const url = `https://public-api.birdeye.so/public/wallet/tokenlist?wallet=${wallet}`;
+  const url = `https://public-api.birdeye.so/defi/wallet/token_list?wallet=${wallet}`;
+
 
   try {
     const response = await fetch(url, {
