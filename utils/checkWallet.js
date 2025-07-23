@@ -1,14 +1,14 @@
 const fetch = require('node-fetch');
 
 async function fetchWalletTokens(wallet, apiKey) {
-  const url = `https://public-api.birdeye.so/public/wallet/token_list?wallet=${wallet}`;
+  const url = `https://public-api.birdeye.so/public/wallet/tokenlist?wallet=${wallet}`;
 
   try {
     const response = await fetch(url, {
       headers: {
         'accept': 'application/json',
         'x-chain': 'solana',
-        'X-API-KEY': apiKey
+        'x-api-key': apiKey
       }
     });
 
@@ -18,11 +18,12 @@ async function fetchWalletTokens(wallet, apiKey) {
     }
 
     const data = await response.json();
-    if (!data || !data.data || !Array.isArray(data.data.tokens)) {
+
+    if (!data || !Array.isArray(data.data)) {
       throw new Error('❌ Wallet check failed — Unexpected response format');
     }
 
-    return data.data.tokens;
+    return data.data;
   } catch (err) {
     console.error('❌ Wallet check failed:', err.message);
     return [];
