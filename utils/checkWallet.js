@@ -1,14 +1,14 @@
 const fetch = require('node-fetch');
 
 async function fetchWalletTokens(wallet, apiKey) {
-  const url = `https://public-api.birdeye.so/wallet/token_list?wallet=${wallet}`;
+  const url = `https://public-api.birdeye.so/public/wallet/token_list?wallet=${wallet}`;
 
   try {
     const response = await fetch(url, {
       headers: {
         'accept': 'application/json',
         'x-chain': 'solana',
-        'x-api-key': apiKey
+        'X-API-KEY': apiKey
       }
     });
 
