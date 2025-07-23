@@ -1,44 +1,51 @@
-// utils/practiceStore.js
+const practiceData = {};
 
-const balances = {};
-
-// Helper to ensure user/token balance exists
-function initBalance(userId, symbol) {
-  if (!balances[userId]) balances[userId] = {};
-  if (!balances[userId][symbol]) balances[userId][symbol] = 0;
+function ensureUser(userId) {
+  if (!practiceData[userId]) {
+    practiceData[userId] = {
+      balance: 1000,
+      pnl: 0
+    };
+  }
 }
 
-// Main function
-module.exports = async function practiceStore(userId, action, symbol, amount = 0) {
-  symbol = symbol.toUpperCase();
+async function startPractice(userId) {
+  ensureUser(userId);
+  return `🚀 Practice mode started! Balance: $${practiceData[userId].balance.toFixed(2)}`;
+}
 
-  if (action === 'start') {
-    balances[userId] = {}; // Reset user's balances
-    return '🧪 Practice mode started. Use /buy SYMBOL AMOUNT or /sell SYMBOL AMOUNT';
+async function mockBuy(userId, amount) {
+  ensureUser(userId);
+  if (amount > practiceData[userId].balance) {
+    return `❌ Not enough balance. Available: $${practiceData[userId].balance.toFixed(2)}`;
   }
+  practiceData[userId].balance -= amount;
+  practiceData[userId].pnl -= amount;
+  return `🛒 Bought $${amount.toFixed(2)} — New Balance: $${practiceData[userId].balance.toFixed(2)}`;
+}
 
-  if (!symbol || !userId) return '⚠️ Missing user or symbol.';
+async function mockSell(userId, amount) {
+  ensureUser(userId);
+  practiceData[userId].balance += amount;
+  practiceData[userId].pnl += amount;
+  return `💵 Sold $${amount.toFixed(2)} — New Balance: $${practiceData[userId].balance.toFixed(2)}`;
+}
 
-  initBalance(userId, symbol);
+async function checkBalance(userId) {
+  ensureUser(userId);
+  const { balance, pnl } = practiceData[userId];
+  return `📊 Balance: $${balance.toFixed(2)}\n📈 P&L: $${pnl.toFixed(2)}`;
+}
 
-  if (action === 'buy') {
-    balances[userId][symbol] += parseFloat(amount);
-    return `✅ Bought ${amount} ${symbol}. New balance: ${balances[userId][symbol].toFixed(4)} ${symbol}`;
-  }
+async function resetPractice(userId) {
+  practiceData[userId] = { balance: 1000, pnl: 0 };
+  return `♻️ Practice account reset. Starting over with $1000.`;
+}
 
-  if (action === 'sell') {
-    if (balances[userId][symbol] < parseFloat(amount)) {
-      return `❌ Not enough ${symbol} to sell. Current balance: ${balances[userId][symbol].toFixed(4)} ${symbol}`;
-    }
-    balances[userId][symbol] -= parseFloat(amount);
-    return `✅ Sold ${amount} ${symbol}. New balance: ${balances[userId][symbol].toFixed(4)} ${symbol}`;
-  }
-
-  if (action === 'balance') {
-    const tokens = Object.entries(balances[userId] || {});
-    if (tokens.length === 0) return '📭 No balances. Use /buy to get started.';
-    return '💼 Your balances:\n' + tokens.map(([sym, amt]) => `• ${sym}: ${amt.toFixed(4)}`).join('\n');
-  }
-
-  return '⚠️ Unknown action.';
+module.exports = {
+  startPractice,
+  mockBuy,
+  mockSell,
+  checkBalance,
+  resetPractice
 };
