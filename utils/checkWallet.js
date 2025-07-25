@@ -1,51 +1,66 @@
 const fetch = require('node-fetch');
 
-const BIRDEYE_API_KEY = '88dfeb8d4a07419699417bdddc0960ce';
-
-async function fetchWalletTokens(wallet) {
-  const url = `https://public-api.birdeye.so/defi/tokenlist?wallet=${wallet}`;
-
+async function fetchSPLTokens(wallet, apiKey) {
+  const url = `https://public-api.birdeye.so/defi/wallet/token_list?wallet=${wallet}`;
   try {
-    console.log(`🔍 Fetching tokens for wallet: ${wallet}`);
-    console.log(`🔑 API Key: ${BIRDEYE_API_KEY}`);
-    console.log(`🌐 URL: ${url}`);
-
     const response = await fetch(url, {
       headers: {
         'accept': 'application/json',
-        'x-api-key': BIRDEYE_API_KEY,
+        'x-api-key': apiKey,
         'x-chain': 'solana'
       }
     });
 
-    const body = await response.text();
-    console.log(`📥 Status: ${response.status}`);
-    console.log(`📥 Body: ${body}`);
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`HTTP ${response.status}: ${text}`);
+    }
 
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${body}`);
-
-    const data = JSON.parse(body);
-    if (!data || !Array.isArray(data.data)) throw new Error('❌ Unexpected format');
-
-    return data.data;
+    const data = await response.json();
+    return Array.isArray(data.data) ? data.data : [];
   } catch (err) {
-    console.error('❌ Wallet check failed:', err.message);
+    console.error('❌ SPL token fetch failed:', err.message);
     return [];
   }
 }
 
-module.exports = async function checkWallet(bot, groupId, wallet) {
-  const tokens = await fetchWalletTokens(wallet);
-  if (!tokens.length) {
-    console.warn("⚠️ No tokens found or wallet check failed.");
-    return;
+async function fetchSOLBalance(wallet, rpcUrl) {
+  try {
+    const response = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        id: 1,
+        method: 'getBalance',
+        params: [wallet]
+      })
+    });
+
+    const json = await response.json();
+    const lamports = json?.result?.value;
+    return lamports ? lamports / 1e9 : 0;
+  } catch (err) {
+    console.error('❌ SOL balance fetch failed:', err.message);
+    return 0;
   }
+}
 
-  const sorted = tokens.sort((a, b) => b.ui_amount - a.ui_amount);
-  const top = sorted.slice(0, 5);
+module.exports = async function checkWallet(bot, groupId, wallet, apiKey) {
+  const rpcUrl = process.env.RPC_URL;
+  const splTokens = await fetchSPLTokens(wallet, apiKey);
+  const solBalance = await fetchSOLBalance(wallet, rpcUrl);
 
-  const message = `📊 Top Tokens in Wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)}:\n` +
-    top.map(token => `• ${token.symbol || token.token_address.slice(0, 6)}: ${token.ui_amount.toFixed(2)}`).join('\n');
-
-  bot.sendMessage(groupId, message);
+  if (splTokens.length > 0) {
+    const sorted = splTokens.sort((a, b) => b.ui_amount - a.ui_amount);
+    const top = sorted.slice(0, 5);
+    const message = `📊 Top Tokens in Wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)}:\n` +
+      top.map(token => `• ${token.symbol || token.token_address.slice(0, 6)}: ${token.ui_amount.toFixed(2)}`).join('\n');
+    bot.sendMessage(groupId, message);
+  } else if (solBalance > 0) {
+    const message = `💰 Wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)} holds:\n• SOL: ${solBalance.toFixed(4)}`;
+    bot.sendMessage(groupId, message);
+  } else {
+    bot.sendMessage(groupId, `⚠️ No tokens found in wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)}.`);
+  }
 };
