@@ -2,30 +2,30 @@ const fetch = require('node-fetch');
 
 async function fetchWalletTokens(wallet, apiKey) {
   const url = `https://public-api.birdeye.so/defi/wallet/token_list?wallet=${wallet}`;
-  console.log(`🔍 Fetching tokens for wallet: ${wallet}`);
-  console.log(`🔑 Using API Key: ${apiKey}`);
-  console.log(`🌐 Request URL: ${url}`);
+
+  console.log('🔍 Fetching tokens for wallet:', wallet);
+  console.log('🔑 Using API Key:', apiKey);
+  console.log('🌐 Request URL:', url);
 
   try {
     const response = await fetch(url, {
       headers: {
         'accept': 'application/json',
-        'x-chain': 'solana',
-        'x-api-key': apiKey
+        'x-api-key': apiKey,
+        'x-chain': 'solana' // ✅ MUST be lowercase and exact
       }
     });
 
-    const rawBody = await response.text();
+    const raw = await response.text();
 
-    console.log(`📥 Raw Response Status: ${response.status}`);
-    console.log(`📥 Raw Response Body: ${rawBody}`);
-    console.log(`📥 Raw Response Headers:`, response.headers.raw());
+    console.log('📥 Raw Response Status:', response.status);
+    console.log('📥 Raw Response Body:', raw);
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${rawBody}`);
+      throw new Error(`HTTP ${response.status}: ${raw}`);
     }
 
-    const data = JSON.parse(rawBody);
+    const data = JSON.parse(raw);
 
     if (!data || !Array.isArray(data.data)) {
       throw new Error('❌ Wallet check failed — Unexpected response format');
@@ -41,7 +41,7 @@ async function fetchWalletTokens(wallet, apiKey) {
 module.exports = async function checkWallet(bot, groupId, wallet, apiKey) {
   const tokens = await fetchWalletTokens(wallet, apiKey);
   if (!tokens.length) {
-    console.log('⚠️ No tokens found or wallet check failed.');
+    console.warn('⚠️ No tokens found or wallet check failed.');
     return;
   }
 
