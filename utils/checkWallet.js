@@ -2,33 +2,31 @@ const fetch = require('node-fetch');
 
 async function fetchWalletTokens(wallet, apiKey) {
   const url = `https://public-api.birdeye.so/defi/wallet/token_list?wallet=${wallet}`;
-
-  console.log('🔍 Fetching tokens for wallet:', wallet);
-  console.log('🔑 Using API Key:', apiKey);
-  console.log('🌐 Request URL:', url);
+  console.log(`🔍 Fetching tokens for wallet: ${wallet}`);
+  console.log(`🔑 Using API Key: ${apiKey}`);
+  console.log(`🌐 Request URL: ${url}`);
 
   try {
     const response = await fetch(url, {
       headers: {
         'accept': 'application/json',
         'x-api-key': apiKey,
-        'x-chain': 'solana' // ✅ MUST be lowercase and exact
+        'x-chain': 'solana'  // REQUIRED or 401/404 will happen
       }
     });
 
-    const raw = await response.text();
-
-    console.log('📥 Raw Response Status:', response.status);
-    console.log('📥 Raw Response Body:', raw);
+    const rawBody = await response.text();
+    console.log(`📥 Raw Response Status: ${response.status}`);
+    console.log(`📥 Raw Response Body: ${rawBody}`);
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${raw}`);
+      throw new Error(`HTTP ${response.status}: ${rawBody}`);
     }
 
-    const data = JSON.parse(raw);
+    const data = JSON.parse(rawBody);
 
     if (!data || !Array.isArray(data.data)) {
-      throw new Error('❌ Wallet check failed — Unexpected response format');
+      throw new Error('❌ Unexpected response format — wallet check failed');
     }
 
     return data.data;
