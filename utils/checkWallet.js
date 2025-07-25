@@ -22,15 +22,10 @@ async function fetchWalletTokens(wallet) {
     console.log(`📥 Status: ${response.status}`);
     console.log(`📥 Body: ${body}`);
 
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${body}`);
-    }
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${body}`);
 
     const data = JSON.parse(body);
-
-    if (!data || !Array.isArray(data.data)) {
-      throw new Error('❌ Unexpected format');
-    }
+    if (!data || !Array.isArray(data.data)) throw new Error('❌ Unexpected format');
 
     return data.data;
   } catch (err) {
