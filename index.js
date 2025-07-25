@@ -8,7 +8,6 @@ const groupId = process.env.GROUP_ID;
 
 console.log("✅ SheepTrackerBot is running...");
 console.log("Wallet:", process.env.WALLET_ADDRESS);
-console.log("API Key:", process.env.BIRDEYE_API_KEY);
 
 // 🔁 Ping Test
 bot.onText(/\/ping/, (msg) => {
@@ -45,7 +44,7 @@ bot.onText(/\/balance/, async (msg) => {
   bot.sendMessage(msg.chat.id, result);
 });
 
-// ⏱️ Wallet Tracker – runs every 20 seconds
+// ⏱️ Run Wallet Tracker every 20 seconds
 setInterval(() => {
-  checkWallet(bot, groupId, process.env.WALLET_ADDRESS, process.env.BIRDEYE_API_KEY);
+  checkWallet(bot, groupId, process.env.WALLET_ADDRESS);
 }, 20000);
