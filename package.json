@@ -1,14 +1,24 @@
 {
   "name": "sheep-tracker-bot",
   "version": "1.0.0",
-  "description": "Telegram sniper + wallet tracker bot",
+  "description": "Telegram bot for wallet tracking and practice trading",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "keywords": [
+    "telegram-bot",
+    "solana",
+    "wallet-tracker",
+    "birdeye"
+  ],
+  "author": "You",
+  "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.3.1",
-    "node-telegram-bot-api": "^0.61.0",
-    "node-fetch": "^2.6.9"
+    "@solana/web3.js": "^1.88.2",
+    "dotenv": "^16.0.3",
+    "node-fetch": "^2.6.7",
+    "node-telegram-bot-api": "^0.61.0"
   }
 }
+
