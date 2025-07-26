@@ -1,97 +1,71 @@
+// index.js
 require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
+const { getBuySellKeyboard } = require('./modules/inlineButtons');
+const buyHandler = require('./modules/buyHandler');
 const checkWallet = require('./utils/checkWallet');
-const checkPracticeMode = require('./utils/practiceStore');
-const sendSOL = require('./modules/trade');
 const fs = require('fs');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-console.log("✅ SheepTrackerBot is running...");
+const groupId = process.env.GROUP_ID;
 
-// 🔁 Ping
-bot.onText(/\/ping/, (msg) => {
-  bot.sendMessage(msg.chat.id, 'pong');
-});
+console.log('✅ SheepTrackerBot is running...');
 
-// 🧪 Practice Mode
 bot.onText(/\/start/, async (msg) => {
   const userId = msg.from.id;
-  const result = await checkPracticeMode(userId, 'start');
-  bot.sendMessage(msg.chat.id, result);
-});
+  const isGroup = msg.chat.id !== userId;
+  const welcome = `🐺 *Welcome to SheepTrackerBot!*
 
-bot.onText(/\/buy (.+)/, async (msg, match) => {
-  const userId = msg.from.id;
-  const amount = match[1];
-  const result = await checkPracticeMode(userId, 'buy', amount);
-  bot.sendMessage(msg.chat.id, result);
-});
+Use the buttons below to test a buy or sell.
+(This is practice mode unless configured otherwise)`;
 
-bot.onText(/\/sell (.+)/, async (msg, match) => {
-  const userId = msg.from.id;
-  const amount = match[1];
-  const result = await checkPracticeMode(userId, 'sell', amount);
-  bot.sendMessage(msg.chat.id, result);
-});
-
-bot.onText(/\/balance/, async (msg) => {
-  const userId = msg.from.id;
-  const result = await checkPracticeMode(userId, 'balance');
-  bot.sendMessage(msg.chat.id, result);
-});
-
-// 🪙 Real Buy Menu
-bot.onText(/\/buyreal/, (msg) => {
-  const chatId = msg.chat.id;
-
-  const options = {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: 'Buy 0.05 SOL', callback_data: 'buy_0.05' },
-          { text: 'Buy 0.1 SOL', callback_data: 'buy_0.1' }
-        ],
-        [
-          { text: 'Custom Amount', callback_data: 'buy_custom' }
-        ]
-      ]
-    }
-  };
-
-  bot.sendMessage(chatId, '💸 Choose your SOL buy amount:', options);
-});
-
-// Handle Buy Buttons
-bot.on('callback_query', async (callbackQuery) => {
-  const msg = callbackQuery.message;
-  const chatId = msg.chat.id;
-  const data = callbackQuery.data;
-
-  if (data.startsWith('buy_')) {
-    if (data === 'buy_custom') {
-      bot.sendMessage(chatId, '✏️ Enter the custom SOL amount to send (e.g., `0.07`):', {
-        reply_markup: { force_reply: true }
-      }).then((sentMsg) => {
-        bot.onReplyToMessage(sentMsg.chat.id, sentMsg.message_id, async (reply) => {
-          const amount = parseFloat(reply.text);
-          if (isNaN(amount) || amount <= 0) {
-            return bot.sendMessage(chatId, '❌ Invalid amount.');
-          }
-          const response = await sendSOL(process.env.TEST_BUY_ADDRESS, amount);
-          bot.sendMessage(chatId, response);
-        });
-      });
-    } else {
-      const amount = parseFloat(data.split('_')[1]);
-      const response = await sendSOL(process.env.TEST_BUY_ADDRESS, amount);
-      bot.sendMessage(chatId, response);
-    }
+  if (!isGroup) {
+    bot.sendMessage(userId, welcome, {
+      parse_mode: 'Markdown',
+      ...getBuySellKeyboard()
+    });
   }
 });
 
-// 🔁 Wallet Tracker (private reply only)
-bot.onText(/\/mywallet/, async (msg) => {
-  const userId = msg.from.id;
-  const result = await checkWallet(userId, bot);
-  bot.sendMessage(userId, result, { parse_mode: 'Markdown' });
+bot.on('callback_query', async (query) => {
+  const chatId = query.message.chat.id;
+  const userId = query.from.id;
+  const data = query.data;
+
+  if (data.startsWith("buy_")) {
+    const amount = parseFloat(data.split("_")[1]);
+    await buyHandler(bot, userId, amount);
+    return bot.answerCallbackQuery(query.id);
+  }
+
+  if (data === "custom_buy") {
+    bot.sendMessage(userId, "✏️ Enter custom buy amount in SOL:");
+    bot.once("message", async (msg) => {
+      const amt = parseFloat(msg.text);
+      if (!isNaN(amt)) {
+        await buyHandler(bot, userId, amt);
+      } else {
+        bot.sendMessage(userId, "❌ Invalid amount.");
+      }
+    });
+    return bot.answerCallbackQuery(query.id);
+  }
+
+  if (data === "sell_all") {
+    bot.sendMessage(userId, "⚡ Sell All - Feature coming soon");
+    return bot.answerCallbackQuery(query.id);
+  }
+
+  if (data === "custom_sell") {
+    bot.sendMessage(userId, "✏️ Enter custom sell amount in SOL:");
+    bot.once("message", async (msg) => {
+      const amt = parseFloat(msg.text);
+      if (!isNaN(amt)) {
+        bot.sendMessage(userId, `🛠 Selling ${amt} SOL (feature coming soon)`);
+      } else {
+        bot.sendMessage(userId, "❌ Invalid amount.");
+      }
+    });
+    return bot.answerCallbackQuery(query.id);
+  }
 });
