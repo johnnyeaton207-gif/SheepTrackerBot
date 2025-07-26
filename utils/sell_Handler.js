@@ -1,38 +1,76 @@
-// utils/sellHandler.js
+require('dotenv').config();
+const TelegramBot = require('node-telegram-bot-api');
+const fs = require('fs');
+const path = require('path');
 
-const { Connection, PublicKey, Keypair, LAMPORTS_PER_SOL } = require('@solana/web3.js');
-const bs58 = require('bs58');
-const fetch = require('node-fetch');
+const { checkWallet } = require('./utils/checkWallet');
+const { buyToken } = require('./utils/buyHandler');
+const { sellToken } = require('./utils/sellHandler');
+const { checkPracticeMode, setPracticeMode } = require('./utils/practiceHandler');
 
-const connection = new Connection(process.env.RPC_URL, 'confirmed');
-const sellWallet = Keypair.fromSecretKey(bs58.decode(process.env.SELL_WALLET));
+const token = process.env.BOT_TOKEN;
+const bot = new TelegramBot(token, { polling: true });
 
-async function getTokenData(symbol, apiKey) {
-  const url = `https://public-api.birdeye.so/defi/token/search?query=${symbol}`;
-  const response = await fetch(url, {
-    headers: {
-      'accept': 'application/json',
-      'x-api-key': apiKey,
-      'x-chain': 'solana'
-    }
-  });
+const BUY_WALLET = process.env.BUY_WALLET;
+const SELL_WALLET = process.env.SELL_WALLET;
+const GROUP_ID = process.env.GROUP_ID;
+const PRACTICE_WALLET = process.env.PRACTICE_WALLET;
 
-  const data = await response.json();
-  if (!data?.data?.length) return null;
-  return data.data[0];
-}
+bot.onText(/\/start/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id;
+  const isPractice = await checkPracticeMode(userId);
+  const walletToCheck = isPractice ? PRACTICE_WALLET : null;
 
-async function sellToken(symbol, amountSOL) {
-  const tokenInfo = await getTokenData(symbol, process.env.BIRDEYE_API_KEY);
-  if (!tokenInfo) throw new Error(`❌ Token ${symbol} not found.`);
+  if (walletToCheck) {
+    await checkWallet(userId, walletToCheck, bot);
+  }
 
-  // Placeholder for actual swap logic
-  console.log(`(MOCK) Selling ${amountSOL} SOL of ${tokenInfo.symbol} (${tokenInfo.address})`);
+  bot.sendMessage(chatId, `🐺 Welcome to SheepTrackerBot\!\nUse the buttons to BUY or SELL tokens\.`);
+});
 
-  return {
-    success: true,
-    message: `✅ (MOCK) Sold ${amountSOL} SOL of ${tokenInfo.symbol}`
-  };
-}
+bot.onText(/\/setwallet (.+)/, (msg, match) => {
+  const userId = msg.from.id;
+  const wallet = match[1];
+  const walletsPath = path.join(__dirname, 'data', 'user_wallets.json');
+  const wallets = fs.existsSync(walletsPath) ? JSON.parse(fs.readFileSync(walletsPath)) : {};
+  wallets[userId] = wallet;
+  fs.writeFileSync(walletsPath, JSON.stringify(wallets, null, 2));
+  bot.sendMessage(msg.chat.id, `✅ Wallet set to: \`${wallet}\``, { parse_mode: 'Markdown' });
+});
 
-module.exports = sellToken;
+bot.onText(/\/mywallet/, (msg) => {
+  const userId = msg.from.id;
+  const walletsPath = path.join(__dirname, 'data', 'user_wallets.json');
+  const wallets = fs.existsSync(walletsPath) ? JSON.parse(fs.readFileSync(walletsPath)) : {};
+  const wallet = wallets[userId];
+  if (wallet) {
+    checkWallet(userId, wallet, bot);
+  } else {
+    bot.sendMessage(msg.chat.id, '⚠️ Wallet not set. Use /setwallet <your_wallet_address>');
+  }
+});
+
+bot.onText(/\/buy (\S+)(?: (\d*\.?\d+))?/, async (msg, match) => {
+  const userId = msg.from.id;
+  const tokenSymbol = match[1];
+  const amount = match[2] || '0.1';
+  await buyToken(userId, tokenSymbol, amount, bot);
+});
+
+bot.onText(/\/sell (\S+)(?: (\d*\.?\d+))?/, async (msg, match) => {
+  const userId = msg.from.id;
+  const tokenSymbol = match[1];
+  const amount = match[2] || '0.1';
+  await sellToken(userId, tokenSymbol, amount, bot);
+});
+
+bot.onText(/\/practice/, async (msg) => {
+  const userId = msg.from.id;
+  const active = await checkPracticeMode(userId);
+  const newState = !active;
+  await setPracticeMode(userId, newState);
+  bot.sendMessage(msg.chat.id, `🧪 Practice mode is now *${newState ? 'ON' : 'OFF'}*`, { parse_mode: 'Markdown' });
+});
+
+console.log('✅ SheepTrackerBot is running...');
