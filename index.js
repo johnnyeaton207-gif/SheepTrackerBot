@@ -4,26 +4,14 @@ const checkWallet = require('./utils/checkWallet');
 const checkPracticeMode = require('./utils/practiceStore');
 
 const bot = new TelegramBot(process.env.BOT_TOKEN, { polling: true });
-const groupId = process.env.GROUP_ID;
-
 console.log("✅ SheepTrackerBot is running...");
-console.log("Wallet:", process.env.WALLET_ADDRESS);
-console.log("API Key:", process.env.BIRDEYE_API_KEY);
-console.log("RPC URL:", process.env.SOLANA_RPC);
 
-// 🏓 Ping
+// 🔁 Ping Test
 bot.onText(/\/ping/, (msg) => {
   bot.sendMessage(msg.chat.id, 'pong');
 });
 
-// 🧪 Practice Mode: Start
-bot.onText(/\/start/, async (msg) => {
-  const userId = msg.from.id;
-  const result = await checkPracticeMode(userId, 'start');
-  bot.sendMessage(msg.chat.id, result);
-});
-
-// 🧪 Practice Buy
+// 🧪 Practice Mode Buy
 bot.onText(/\/buy (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
@@ -31,7 +19,7 @@ bot.onText(/\/buy (.+)/, async (msg, match) => {
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🧪 Practice Sell
+// 🧪 Practice Mode Sell
 bot.onText(/\/sell (.+)/, async (msg, match) => {
   const userId = msg.from.id;
   const amount = match[1];
@@ -39,20 +27,33 @@ bot.onText(/\/sell (.+)/, async (msg, match) => {
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🧪 Practice Balance
+// 🧪 Start Practice
+bot.onText(/\/start/, async (msg) => {
+  const userId = msg.from.id;
+  const result = await checkPracticeMode(userId, 'start');
+  bot.sendMessage(msg.chat.id, result);
+});
+
+// 💼 Balance Check
 bot.onText(/\/balance/, async (msg) => {
   const userId = msg.from.id;
   const result = await checkPracticeMode(userId, 'balance');
   bot.sendMessage(msg.chat.id, result);
 });
 
-// 🔍 Manual Wallet Check: /checkwallet <wallet>
-bot.onText(/\/checkwallet (.+)/, async (msg, match) => {
-  const wallet = match[1];
-  await checkWallet(bot, msg.chat.id, wallet, process.env.BIRDEYE_API_KEY, process.env.SOLANA_RPC, false);
+// 💾 Save wallet address
+bot.onText(/\/setwallet (.+)/, (msg, match) => {
+  const userId = msg.from.id;
+  const address = match[1].trim();
+  if (!/^([1-9A-HJ-NP-Za-km-z]{32,44})$/.test(address)) {
+    return bot.sendMessage(userId, "⚠️ Invalid wallet address format.");
+  }
+  checkWallet.saveUserWallet(userId, address);
+  bot.sendMessage(userId, `✅ Wallet saved: \`${address}\``, { parse_mode: 'Markdown' });
 });
 
-// 🔁 Background Wallet Check (your wallet only, silent mode)
-setInterval(() => {
-  checkWallet(bot, groupId, process.env.WALLET_ADDRESS, process.env.BIRDEYE_API_KEY, process.env.SOLANA_RPC, true);
-}, 20000);
+// 📥 Check saved wallet privately
+bot.onText(/\/mywallet/, async (msg) => {
+  const userId = msg.from.id;
+  await checkWallet(bot, userId, null, false);
+});
