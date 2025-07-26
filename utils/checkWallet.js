@@ -1,7 +1,10 @@
+// ✅ checkWallet.js (Full Updated Version)
+
 const fetch = require('node-fetch');
 
 async function fetchSPLTokens(wallet, apiKey) {
   const url = `https://public-api.birdeye.so/defi/wallet/token_list?wallet=${wallet}`;
+
   try {
     const response = await fetch(url, {
       headers: {
@@ -38,29 +41,34 @@ async function fetchSOLBalance(wallet, rpcUrl) {
     });
 
     const json = await response.json();
-    const lamports = json?.result?.value;
-    return lamports ? lamports / 1e9 : 0;
+    if (!json.result) throw new Error('No balance result');
+
+    const lamports = json.result.value;
+    return lamports / 1e9; // Convert to SOL
   } catch (err) {
     console.error('❌ SOL balance fetch failed:', err.message);
-    return 0;
+    return null;
   }
 }
 
-module.exports = async function checkWallet(bot, groupId, wallet, apiKey) {
-  const rpcUrl = process.env.RPC_URL;
+module.exports = async function checkWallet(bot, chatId, wallet, apiKey, rpcUrl, silent = false) {
   const splTokens = await fetchSPLTokens(wallet, apiKey);
-  const solBalance = await fetchSOLBalance(wallet, rpcUrl);
+  const sol = await fetchSOLBalance(wallet, rpcUrl);
 
-  if (splTokens.length > 0) {
-    const sorted = splTokens.sort((a, b) => b.ui_amount - a.ui_amount);
-    const top = sorted.slice(0, 5);
-    const message = `📊 Top Tokens in Wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)}:\n` +
-      top.map(token => `• ${token.symbol || token.token_address.slice(0, 6)}: ${token.ui_amount.toFixed(2)}`).join('\n');
-    bot.sendMessage(groupId, message);
-  } else if (solBalance > 0) {
-    const message = `💰 Wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)} holds:\n• SOL: ${solBalance.toFixed(4)}`;
-    bot.sendMessage(groupId, message);
+  let response = `📊 Wallet Overview: ${wallet.slice(0, 4)}...${wallet.slice(-4)}\n`;
+
+  if (sol !== null) response += `• SOL: ${sol.toFixed(4)}\n`;
+
+  if (splTokens.length) {
+    const top = splTokens.sort((a, b) => b.ui_amount - a.ui_amount).slice(0, 5);
+    for (const token of top) {
+      response += `• ${token.symbol || token.token_address.slice(0, 6)}: ${token.ui_amount.toFixed(2)}\n`;
+    }
   } else {
-    bot.sendMessage(groupId, `⚠️ No tokens found in wallet ${wallet.slice(0, 4)}...${wallet.slice(-4)}.`);
+    response += `• No SPL tokens found.`;
   }
+
+  if (!silent) bot.sendMessage(chatId, response);
+
+  return response;
 };
