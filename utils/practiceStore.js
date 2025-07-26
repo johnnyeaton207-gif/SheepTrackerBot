@@ -1,32 +1,59 @@
-const store = new Map();
+// utils/practiceStore.js
+const fs = require('fs');
+const path = require('path');
 
-function formatBalance(balance) {
-  return `💰 Balance: ${balance.toFixed(2)} SOL`;
+const dataPath = path.join(__dirname, '../data/practice_balances.json');
+
+if (!fs.existsSync(dataPath)) {
+  fs.writeFileSync(dataPath, JSON.stringify({}));
 }
 
-async function handleCommand(userId, command, amount) {
-  let balance = store.get(userId) || 100;
+const balances = JSON.parse(fs.readFileSync(dataPath));
 
-  switch (command) {
-    case 'start':
-      store.set(userId, 100);
-      return '✅ Practice mode started. Balance reset to 100 SOL.';
-    case 'balance':
-      return formatBalance(balance);
-    case 'buy':
-      if (!amount || isNaN(amount)) return '❌ Invalid buy amount.';
-      if (balance < parseFloat(amount)) return '❌ Insufficient balance.';
-      balance -= parseFloat(amount);
-      store.set(userId, balance);
-      return `🟢 Bought for ${amount} SOL\n${formatBalance(balance)}`;
-    case 'sell':
-      if (!amount || isNaN(amount)) return '❌ Invalid sell amount.';
-      balance += parseFloat(amount);
-      store.set(userId, balance);
-      return `🔴 Sold for ${amount} SOL\n${formatBalance(balance)}`;
-    default:
-      return '❓ Unknown command.';
+function saveBalances() {
+  fs.writeFileSync(dataPath, JSON.stringify(balances, null, 2));
+}
+
+async function checkPracticeMode(userId, action, amount) {
+  if (!balances[userId]) {
+    balances[userId] = { balance: 1000 }; // default starting balance
   }
+
+  let msg = '';
+  const user = balances[userId];
+
+  switch (action) {
+    case 'start':
+      user.balance = 1000;
+      msg = `🧪 Practice mode started. Balance set to 1000 SOL.`;
+      break;
+
+    case 'buy':
+      const buyAmt = parseFloat(amount);
+      if (buyAmt > user.balance) {
+        msg = `❌ Not enough balance. You have ${user.balance.toFixed(2)} SOL.`;
+      } else {
+        user.balance -= buyAmt;
+        msg = `✅ Bought token for ${buyAmt} SOL.\n💰 New Balance: ${user.balance.toFixed(2)} SOL.`;
+      }
+      break;
+
+    case 'sell':
+      const sellAmt = parseFloat(amount);
+      user.balance += sellAmt;
+      msg = `✅ Sold token for ${sellAmt} SOL.\n💰 New Balance: ${user.balance.toFixed(2)} SOL.`;
+      break;
+
+    case 'balance':
+      msg = `💼 Practice Balance: ${user.balance.toFixed(2)} SOL.`;
+      break;
+
+    default:
+      msg = '❓ Unknown action.';
+  }
+
+  saveBalances();
+  return msg;
 }
 
-module.exports = { handleCommand };
+module.exports = checkPracticeMode;
