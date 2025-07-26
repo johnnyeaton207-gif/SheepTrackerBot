@@ -1,74 +1,90 @@
-// ✅ checkWallet.js (Full Updated Version)
-
+require('dotenv').config();
 const fetch = require('node-fetch');
+const { Connection, PublicKey } = require('@solana/web3.js');
+const fs = require('fs');
+const path = require('path');
 
-async function fetchSPLTokens(wallet, apiKey) {
-  const url = `https://public-api.birdeye.so/defi/wallet/token_list?wallet=${wallet}`;
+// Local wallet store
+const walletStorePath = path.join(__dirname, '../data/user_wallets.json');
 
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'accept': 'application/json',
-        'x-api-key': apiKey,
-        'x-chain': 'solana'
-      }
-    });
+// Ensure file exists
+if (!fs.existsSync(walletStorePath)) fs.writeFileSync(walletStorePath, '{}', 'utf-8');
 
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`HTTP ${response.status}: ${text}`);
-    }
-
-    const data = await response.json();
-    return Array.isArray(data.data) ? data.data : [];
-  } catch (err) {
-    console.error('❌ SPL token fetch failed:', err.message);
-    return [];
-  }
+function saveUserWallet(userId, wallet) {
+  const store = JSON.parse(fs.readFileSync(walletStorePath, 'utf-8'));
+  store[userId] = wallet;
+  fs.writeFileSync(walletStorePath, JSON.stringify(store, null, 2));
 }
 
-async function fetchSOLBalance(wallet, rpcUrl) {
+function getUserWallet(userId) {
+  const store = JSON.parse(fs.readFileSync(walletStorePath, 'utf-8'));
+  return store[userId];
+}
+
+async function fetchSOLBalance(wallet) {
   try {
-    const response = await fetch(rpcUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'getBalance',
-        params: [wallet]
-      })
-    });
-
-    const json = await response.json();
-    if (!json.result) throw new Error('No balance result');
-
-    const lamports = json.result.value;
-    return lamports / 1e9; // Convert to SOL
+    const connection = new Connection(process.env.RPC_URL);
+    const publicKey = new PublicKey(wallet);
+    const balanceLamports = await connection.getBalance(publicKey);
+    return balanceLamports / 1e9; // SOL
   } catch (err) {
-    console.error('❌ SOL balance fetch failed:', err.message);
+    console.error("❌ SOL balance fetch error:", err.message);
     return null;
   }
 }
 
-module.exports = async function checkWallet(bot, chatId, wallet, apiKey, rpcUrl, silent = false) {
-  const splTokens = await fetchSPLTokens(wallet, apiKey);
-  const sol = await fetchSOLBalance(wallet, rpcUrl);
+async function fetchSPLTokens(wallet) {
+  const url = `https://public-api.birdeye.so/defi/wallet/token_list?wallet=${wallet}`;
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'accept': 'application/json',
+        'x-api-key': process.env.BIRDEYE_API_KEY,
+        'x-chain': 'solana'
+      }
+    });
 
-  let response = `📊 Wallet Overview: ${wallet.slice(0, 4)}...${wallet.slice(-4)}\n`;
-
-  if (sol !== null) response += `• SOL: ${sol.toFixed(4)}\n`;
-
-  if (splTokens.length) {
-    const top = splTokens.sort((a, b) => b.ui_amount - a.ui_amount).slice(0, 5);
-    for (const token of top) {
-      response += `• ${token.symbol || token.token_address.slice(0, 6)}: ${token.ui_amount.toFixed(2)}\n`;
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
     }
+
+    const data = await res.json();
+    if (!data || !Array.isArray(data.data)) return [];
+
+    return data.data.filter(t => t.ui_amount > 0);
+  } catch (err) {
+    console.error("❌ SPL token fetch error:", err.message);
+    return [];
+  }
+}
+
+module.exports = async function checkWallet(bot, chatId, userWallet = null, silent = false) {
+  const wallet = userWallet || getUserWallet(chatId) || process.env.WALLET_ADDRESS;
+  if (!wallet) return bot.sendMessage(chatId, "⚠️ No wallet set. Use /setwallet [address]");
+
+  const sol = await fetchSOLBalance(wallet);
+  const tokens = await fetchSPLTokens(wallet);
+
+  let msg = `📍 Wallet: \`${wallet}\`\n\n`;
+  if (sol !== null) msg += `💰 SOL Balance: ${sol.toFixed(4)} SOL\n`;
+
+  if (tokens.length > 0) {
+    const top = tokens.sort((a, b) => b.ui_amount - a.ui_amount).slice(0, 5);
+    msg += `\n📊 Top SPL Tokens:\n` + top.map(t =>
+      `• ${t.symbol || t.token_address.slice(0, 6)}: ${t.ui_amount.toFixed(2)}`
+    ).join('\n');
   } else {
-    response += `• No SPL tokens found.`;
+    msg += "\n⚠️ No SPL tokens found.";
   }
 
-  if (!silent) bot.sendMessage(chatId, response);
+  if (!silent) {
+    bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' });
+  }
 
-  return response;
+  return msg; // for internal call if needed
 };
+
+// Export wallet save/get for index
+module.exports.saveUserWallet = saveUserWallet;
+module.exports.getUserWallet = getUserWallet;
