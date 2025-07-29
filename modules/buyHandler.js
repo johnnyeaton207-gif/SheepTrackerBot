@@ -1,5 +1,3 @@
-// utils/buyHandler.js
-
 const { Connection, Keypair, LAMPORTS_PER_SOL, PublicKey, Transaction, sendAndConfirmTransaction } = require('@solana/web3.js');
 const bs58 = require('bs58');
 const { default: fetch } = require('node-fetch');
