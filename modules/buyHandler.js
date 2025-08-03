@@ -2,30 +2,19 @@ const {
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
-  PublicKey,
   Transaction,
-  sendAndConfirmTransaction
+  sendAndConfirmTransaction,
 } = require('@solana/web3.js');
-const bs58 = require('bs58');
 const { default: fetch } = require('node-fetch');
 const { getSwapIxFromJupiter } = require('./jupiter');
 
+// Setup connection
 const connection = new Connection(process.env.RPC_URL, 'confirmed');
-const buyWallet = process.env.BUY_WALLET;
-const buySecret = process.env.BUY_WALLET_SECRET;
 
-// Log the raw secret being read to help debug issues
-console.log("BUY_WALLET_SECRET raw:", buySecret);
-
-let buyerKeypair;
-try {
-  // Attempt to parse as JSON array
-  const secretArray = JSON.parse(buySecret);
-  buyerKeypair = Keypair.fromSecretKey(Uint8Array.from(secretArray));
-} catch (e) {
-  console.error("❌ Failed to parse BUY_WALLET_SECRET. It must be a valid JSON array (e.g. [199,137,...])");
-  throw e;
-}
+// Load and decode secret key from .env as Uint8Array
+const rawSecret = JSON.parse(process.env.BUY_WALLET_SECRET);
+const secretKey = Uint8Array.from(rawSecret);
+const buyerKeypair = Keypair.fromSecretKey(secretKey);
 
 async function executeBuy(mint, amountSol, tokenName = 'Unknown') {
   try {
@@ -41,12 +30,21 @@ async function executeBuy(mint, amountSol, tokenName = 'Unknown') {
 
     const route = quoteData.data[0];
 
-    const swapIx = await getSwapIxFromJupiter(route, buyerKeypair.publicKey.toBase58());
-    const transaction = Transaction.from(Buffer.from(swapIx.swapTransaction, 'base64'));
+    const swapIx = await getSwapIxFromJupiter(
+      route,
+      buyerKeypair.publicKey.toBase58()
+    );
+    const transaction = Transaction.from(
+      Buffer.from(swapIx.swapTransaction, 'base64')
+    );
     transaction.feePayer = buyerKeypair.publicKey;
-    transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    transaction.recentBlockhash = (
+      await connection.getLatestBlockhash()
+    ).blockhash;
 
-    const txid = await sendAndConfirmTransaction(connection, transaction, [buyerKeypair]);
+    const txid = await sendAndConfirmTransaction(connection, transaction, [
+      buyerKeypair,
+    ]);
 
     console.log(`✅ Bought ${tokenName} (${mint}) for ${amountSol} SOL`);
     return txid;
