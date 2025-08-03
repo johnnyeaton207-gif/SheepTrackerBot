@@ -8,8 +8,7 @@ const buyWallet = process.env.BUY_WALLET;
 const buySecret = process.env.BUY_WALLET_SECRET;
 
 // Create keypair from secret
-const buyerKeypair = Keypair.fromSecretKey(bs58.decode(buySecret));
-
+const buyerKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(process.env.BUY_WALLET_SECRET)));
 async function executeBuy(mint, amountSol, tokenName = 'Unknown') {
   try {
     const lamports = amountSol * LAMPORTS_PER_SOL;
