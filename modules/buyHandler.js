@@ -14,7 +14,8 @@ const connection = new Connection(process.env.RPC_URL, 'confirmed');
 // Load and decode secret key from .env as Uint8Array
 const rawSecret = JSON.parse(process.env.BUY_WALLET_SECRET);
 const secretKey = Uint8Array.from(rawSecret);
-const buyerKeypair = Keypair.fromSecretKey(secretKey);
+const buyerKeypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(buySecret)));
+
 
 async function executeBuy(mint, amountSol, tokenName = 'Unknown') {
   try {
