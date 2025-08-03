@@ -1,3 +1,4 @@
+console.log('BUY_WALLET_SECRET:', process.env.BUY_WALLET_SECRET);
 const {
   Connection,
   Keypair,
